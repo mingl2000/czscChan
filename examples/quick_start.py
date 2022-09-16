@@ -12,6 +12,8 @@ from czsc import CZSC, CzscAdvancedTrader, Freq
 from czsc.utils import BarGenerator
 from czsc import signals
 from czsc.traders.ts_backtest import TsDataCache
+import sys
+import datetime
 
 os.environ['czsc_verbose'] = "1"        # 是否输出详细执行信息，0 不输出，1 输出
 os.environ['czsc_min_bi_len'] = "6"     # 通过环境变量设定最小笔长度，6 对应新笔定义，7 对应老笔定义
@@ -21,11 +23,28 @@ pd.set_option('display.max_columns', 20)
 
 # 需要先设置 Tushare Token，否则报错，无法执行
 # TsDataCache 是统一的 tushare 数据缓存入口，适用于需要重复调用接口的场景
-dc = TsDataCache(data_path=r"C:\ts_data", sdt='2000-01-01', edt='2022-02-18')
+dc = TsDataCache(data_path=r"D:\PriProjects\czscChan\data", sdt='2000-01-01', edt='2022-09-15')
 
 
+if len(sys.argv) ==3:
+    symbol=sys.argv[1]
+    days=int(sys.argv[2])
+else:
+    print("arguments are : Symbol days")
+if len(sys.argv)<2:
+    symbol='002049.sz'
+    days=730
+if len(sys.argv)<3:
+    symbol=sys.argv[1]
+    days=730
+
+start=datetime.date.today()-datetime.timedelta(days=days)
+end=datetime.date.today()
+print('symbol', symbol, ' from ',start.isoformat(), ' to ', end.isoformat() )
 # 在浏览器中查看单标的单级别的分型、笔识别结果
-bars = dc.pro_bar(ts_code='000001.SH', asset='I', start_date='20150101', end_date="20220427", freq='D')
+#bars = dc.pro_bar(ts_code='000001.SH', asset='I', start_date='20150101', end_date="20220427", freq='D')
+bars = dc.pro_bar_yahoo(ts_code=symbol, asset='I', start_date=start.strftime("%Y%m%d"), end_date=end.strftime("%Y%m%d"), freq='D')
+
 c = CZSC(bars)
 c.open_in_browser()
 

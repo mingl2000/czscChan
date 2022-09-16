@@ -27,4 +27,6 @@ def test_datetime_spans():
     assert spans[-2][1] - spans[-2][0] != timedelta(days=400)
 
 
-
+if __name__ == '__main__':
+    print('started...')
+    test_datetime_spans()

@@ -33,4 +33,9 @@ def test_kline_pro():
     chart = ka.to_echarts()
     chart.render(file_html)
     assert os.path.exists(file_html)
-    os.remove(file_html)
+    #os.remove(file_html)
+
+if __name__ == '__main__':
+    print('started...')
+    test_heat_map()
+    test_kline_pro()

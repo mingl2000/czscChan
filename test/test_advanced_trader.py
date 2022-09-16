@@ -179,4 +179,5 @@ def test_advanced_trader():
     run_advanced_trader(T0=False)
     run_advanced_trader(T0=True)
 
-
+if __name__ == '__main__':
+    test_advanced_trader()

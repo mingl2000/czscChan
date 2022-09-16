@@ -1,7 +1,9 @@
 # coding: utf-8
+
 import zipfile
 from tqdm import tqdm
 import pandas as pd
+
 from czsc.analyze import *
 from czsc.enum import Freq
 from czsc.signals.signals import get_default_signals, get_s_three_bi, get_s_d0_bi
@@ -119,3 +121,8 @@ def test_get_signals():
     c = CZSC(bars, get_signals=get_test_signals)
     assert c.signals['日线_倒0笔_方向'] == '向下_任意_任意_0'
     assert c.signals['日线_倒0笔_长度'] == '5到9根K线_任意_任意_0'
+
+
+if __name__ == '__main__':
+    print('started...')
+    test_find_bi()

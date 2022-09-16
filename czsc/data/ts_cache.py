@@ -15,8 +15,9 @@ from deprecated import deprecated
 from czsc.data.ts import *
 from czsc import envs
 from czsc.utils import io
-
-
+import tushare as ts
+import yfinance  as yf
+import pandas_datareader as pdr
 def update_bars_return(kline: pd.DataFrame, bar_numbers=None):
     """给K线加上未来收益和过去收益的计算
 
@@ -62,7 +63,12 @@ class TsDataCache:
         self.prefix = "TS_CACHE"
         self.cache_path = os.path.join(self.data_path, self.prefix)
         os.makedirs(self.cache_path, exist_ok=True)
-        self.pro = pro
+        #self.pro = pro
+        try:
+            ts.set_token('f59b5b554b853e448a10c78af52079706257f9b89c33d70742215a1f')
+            self.pro = ts.pro_api()
+        except:
+            print("Tushare Pro 初始化失败")
         self.__prepare_api_path()
 
         self.freq_map = {
@@ -196,6 +202,66 @@ class TsDataCache:
             start_date_ = (pd.to_datetime(self.sdt) - timedelta(days=1000)).strftime('%Y%m%d')
             kline = ts.pro_bar(ts_code=ts_code, asset=asset, adj=adj, freq=freq,
                                start_date=start_date_, end_date=self.edt)
+            kline = kline.sort_values('trade_date', ignore_index=True)
+            kline['trade_date'] = pd.to_datetime(kline['trade_date'], format=self.date_fmt)
+            kline['dt'] = kline['trade_date']
+            kline['avg_price'] = kline['amount'] / kline['vol']
+            update_bars_return(kline)
+            kline.to_feather(file_cache)
+
+        if start_date:
+            kline = kline[kline['trade_date'] >= pd.to_datetime(start_date)]
+        if end_date:
+            kline = kline[kline['trade_date'] <= pd.to_datetime(end_date)]
+
+        kline.reset_index(drop=True, inplace=True)
+        if raw_bar:
+            kline = format_kline(kline, freq=self.freq_map[freq])
+        return kline
+
+    def pro_bar_yahoo(self, ts_code, start_date=None, end_date=None, freq='D', asset="E", adj='qfq', raw_bar=True):
+        """获取日线以上数据
+
+        https://tushare.pro/document/2?doc_id=109
+
+        :param ts_code:
+        :param start_date:
+        :param end_date:
+        :param freq:
+        :param asset: 资产类别：E股票 I沪深指数 C数字货币 FT期货 FD基金 O期权 CB可转债（v1.2.39），默认E
+        :param adj: 资产类别：E股票 I沪深指数 C数字货币 FT期货 FD基金 O期权 CB可转债（v1.2.39），默认E
+        :param raw_bar:
+        :return:
+        """
+        cache_path = self.api_path_map['pro_bar']
+        file_cache = os.path.join(cache_path, f"pro_bar_{ts_code}#{asset}_{self.sdt}_{freq}_{adj}.feather")
+
+        if not self.refresh and os.path.exists(file_cache):
+            kline = pd.read_feather(file_cache)
+            if self.verbose:
+                print(f"pro_bar: read cache {file_cache}")
+        else:
+            start_date_ = (pd.to_datetime(self.sdt) - timedelta(days=1000)).strftime('%Y%m%d')
+            '''
+            kline = ts.pro_bar(ts_code=ts_code, asset=asset, adj=adj, freq=freq,
+                               start_date=start_date_, end_date=self.edt)
+            '''
+            '''
+            ts_code trade_date     open     high      low    close  trade_date
+20181011    000001.SZ   20181011  1085.71  1097.59  1047.90  1065.19
+20181010    000001.SZ   20181010  1138.65  1151.61  1121.36  1128.92
+20181009    000001.SZ   20181009  1130.00  1155.93  1122.44  1140.81
+20181008    000001.SZ   20181008  1155.93  1165.65  1128.92  1128.92
+20180928    000001.SZ   20180928  1164.57  1217.51  1164.57  119
+            
+            '''
+            df=pdr.get_data_yahoo(symbols=ts_code,  start=start_date_, end=self.edt)
+            df["ts_code"]=ts_code
+            df["trade_date"]=df.index
+            df.rename(columns = {'High':'high','Low':'low','Open':'open','Close':'close','Volume':'vol'}, inplace = True)
+            df["amount"]=df["vol"] *( df["high"] +df["low"] + df["close"] + df["open"])/4
+
+            kline=df
             kline = kline.sort_values('trade_date', ignore_index=True)
             kline['trade_date'] = pd.to_datetime(kline['trade_date'], format=self.date_fmt)
             kline['dt'] = kline['trade_date']
