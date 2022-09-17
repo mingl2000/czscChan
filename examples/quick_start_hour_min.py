@@ -51,9 +51,8 @@ bars = dc.pro_bar_minutes__yahoo(ts_code=symbol, sdt=start.strftime("%Y%m%d"), e
 c = CZSC(bars)
 c.open_in_browser()
 
-
 # K线合成器，这是多级别联立分析的数据支撑。示例为从日线逐K合成周线、月线
-bg = BarGenerator(base_freq='分钟', freqs=['分钟'], max_count=5000)
+bg = BarGenerator(base_freq='60分钟', freqs=['日线', '周线'], max_count=5000)
 for bar in bars:
     bg.update(bar)
 
@@ -61,7 +60,7 @@ for bar in bars:
 print("K线合成器中存下来的K线周期列表：", list(bg.bars.keys()))
 
 # 通过K线合成器获取周线
-bars_w = bg.bars['分钟']
+bars_w = bg.bars['日线']
 
 
 # 定义一些需要观察的信号，可以是多级别同时计算
