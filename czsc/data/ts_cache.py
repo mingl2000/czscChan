@@ -18,6 +18,7 @@ from czsc.utils import io
 import tushare as ts
 import yfinance  as yf
 import pandas_datareader as pdr
+
 def update_bars_return(kline: pd.DataFrame, bar_numbers=None):
     """给K线加上未来收益和过去收益的计算
 
@@ -255,7 +256,11 @@ class TsDataCache:
 20180928    000001.SZ   20180928  1164.57  1217.51  1164.57  119
             
             '''
-            df=pdr.get_data_yahoo(symbols=ts_code,  start=start_date_, end=self.edt)
+                #df=pdr.get_data_yahoo(symbols=ts_code,  start=start_date_, end=self.edt)
+            df = yf.download(tickers=ts_code,  interval="1d", period ="5y")
+            #df["trade_date"]=df.index
+            #dff=df.sort_values("trade_date",ascending=True)
+
             df["ts_code"]=ts_code
             df["trade_date"]=df.index
             df.rename(columns = {'High':'high','Low':'low','Open':'open','Close':'close','Volume':'vol'}, inplace = True)
@@ -263,12 +268,21 @@ class TsDataCache:
 
             kline=df
             kline = kline.sort_values('trade_date', ignore_index=True)
-            kline['trade_date'] = pd.to_datetime(kline['trade_date'], format=self.date_fmt)
+            #kline['trade_date'] = pd.to_datetime(kline['trade_date'], format=self.date_fmt)
             kline['dt'] = kline['trade_date']
             kline['avg_price'] = kline['amount'] / kline['vol']
             update_bars_return(kline)
             kline.to_feather(file_cache)
 
+        '''
+        if kline['trade_date'][0].tzinfo != None:
+            if start_date:
+                start_date=datetime.strptime(start_date,"%Y%m%d")
+                start_date=datetime(start_date.year, start_date.month, start_date.day, 0,0,0, 0,kline['trade_date'][0].tzinfo)
+            if end_date:
+                end_date=datetime.strptime(end_date,"%Y%m%d")
+                end_date=datetime(end_date.year, end_date.month, end_date.day, 0,0,0, 0,kline['trade_date'][0].tzinfo)
+        '''
         if start_date:
             kline = kline[kline['trade_date'] >= pd.to_datetime(start_date)]
         if end_date:
@@ -376,6 +390,143 @@ class TsDataCache:
         if sdt:
             kline = kline[kline['trade_time'] >= pd.to_datetime(sdt)]
         if edt:
+            kline = kline[kline['trade_time'] <= pd.to_datetime(edt)]
+
+        bars = kline.reset_index(drop=True)
+        if raw_bar:
+            bars = format_kline(bars, freq=self.freq_map[freq])
+        return bars
+    def pro_bar_minutes__yahoo(self, ts_code, sdt=None, edt=None, freq='60min', asset="E", adj=None, raw_bar=True):
+        """获取分钟线
+
+        https://tushare.pro/document/2?doc_id=109
+
+        :param ts_code: 标的代码
+        :param sdt: 开始时间，精确到分钟
+        :param edt: 结束时间，精确到分钟
+        :param freq: 分钟周期，可选值 1min, 5min, 15min, 30min, 60min
+        :param asset: 资产类别：E股票 I沪深指数 C数字货币 FT期货 FD基金 O期权 CB可转债（v1.2.39），默认E
+        :param adj: 复权类型，None不复权，qfq:前复权，hfq:后复权
+        :param raw_bar: 是否返回 RawBar 对象列表
+        :return:
+        """
+        cache_path = self.api_path_map['pro_bar_minutes']
+        file_cache = os.path.join(cache_path, f"pro_bar_minutes_{ts_code}#{asset}_{self.sdt}_{freq}_{adj}.feather")
+        edt = self.edt if not edt else edt
+
+        if not self.refresh and os.path.exists(file_cache):
+            kline = pd.read_feather(file_cache)
+            if self.verbose:
+                print(f"pro_bar_minutes: read cache {file_cache}")
+        else:
+            klines = []
+            end_dt = pd.to_datetime(self.edt)
+            dt1 = pd.to_datetime(self.sdt)
+            delta = timedelta(days=20*int(freq.replace("min", "")))
+            dt2 = dt1 + delta
+            while dt1 < end_dt:
+                '''
+                df = ts.pro_bar(ts_code=ts_code, asset=asset, freq=freq,
+                                start_date=dt1.strftime(dt_fmt), end_date=dt2.strftime(dt_fmt))
+                '''
+
+                if freq=='60min':
+                    df = yf.download(tickers=ts_code,  interval="1h", period ="2y")
+                elif freq=='30min':
+                    df = yf.download(tickers=ts_code,  interval="30m", period ="60d")
+                elif freq=='15min':
+                    df = yf.download(tickers=ts_code,  interval="15m", period ="60d")
+                elif freq=='5min':
+                    df = yf.download(tickers=ts_code,  interval="5m", period ="60d")
+                elif freq=='1min':
+                    df = yf.download(tickers=ts_code,  interval="1m", period ="7d")
+
+                df["ts_code"]=ts_code
+                df["trade_date"]=df.index
+                df["trade_time"]=df.index
+                
+                df.rename(columns = {'High':'high','Low':'low','Open':'open','Close':'close','Volume':'vol'}, inplace = True)
+                df["amount"]=df["vol"] *( df["high"] +df["low"] + df["close"] + df["open"])/4
+
+                klines.append(df)
+                dt1 = dt2
+                dt2 = dt1 + delta
+                if self.verbose:
+                    print(f"pro_bar_minutes: {ts_code} - {asset} - {freq} - {dt1} - {dt2} - {len(df)}")
+
+            df_klines = pd.concat(klines, ignore_index=True)
+            kline = df_klines.drop_duplicates('trade_time')\
+                .sort_values('trade_time', ascending=True, ignore_index=True)
+            kline['trade_time'] = pd.to_datetime(kline['trade_time'], format=dt_fmt)
+            kline['dt'] = kline['trade_time']
+            float_cols = ['open', 'close', 'high', 'low', 'vol', 'amount']
+            kline[float_cols] = kline[float_cols].astype('float32')
+            kline['avg_price'] = kline['amount'] / kline['vol']
+
+            # 删除9:30的K线
+            kline['keep'] = kline['trade_time'].apply(lambda x: 0 if x.hour == 9 and x.minute == 30 else 1)
+            kline = kline[kline['keep'] == 1]
+            # 删除没有成交量的K线
+            kline = kline[kline['vol'] > 0]
+            kline.drop(['keep'], axis=1, inplace=True)
+
+            start_date = pd.to_datetime(self.sdt)
+            end_date = pd.to_datetime(self.edt)
+            '''
+            ming
+            '''
+            if start_date:
+                #start_date=datetime.strptime(start_date,"%Y%m%d")
+                start_date=datetime(start_date.year, start_date.month, start_date.day, 0,0,0, 0,kline['trade_time'][1].tzinfo)
+            if end_date:
+                #end_date=datetime.strptime(end_date,"%Y%m%d")
+                end_date=datetime(end_date.year, end_date.month, end_date.day, 0,0,0, 0,kline['trade_time'][1].tzinfo)
+            kline = kline[(kline['trade_time'] >= start_date) & (kline['trade_time'] <= end_date)]
+            kline = kline.reset_index(drop=True)
+            kline['trade_date'] = kline.trade_time.apply(lambda x: x.strftime(date_fmt))
+
+            if asset == 'E':
+                # https://tushare.pro/document/2?doc_id=28
+                factor = pro.adj_factor(ts_code=ts_code, start_date=self.sdt, end_date=self.edt)
+            elif asset == 'FD':
+                # https://tushare.pro/document/2?doc_id=199
+                factor = pro.fund_adj(ts_code=ts_code, start_date=self.sdt, end_date=self.edt)
+            else:
+                factor = pd.DataFrame()
+
+            if len(factor) > 0:
+                # 处理复权因子缺失的情况：前值填充
+                df1 = pd.DataFrame({'trade_date': kline['trade_date'].unique().tolist()})
+                factor = df1.merge(factor, on=['trade_date'], how='left').fillna(method='ffill')
+                factor = factor.sort_values('trade_date', ignore_index=True)
+
+            if self.verbose:
+                print(f"pro_bar_minutes: {ts_code} - {asset} - 复权因子长度 = {len(factor)}")
+
+            # 复权行情说明：https://tushare.pro/document/2?doc_id=146
+            if len(factor) > 0 and adj and adj == 'qfq':
+                # 前复权	= 当日收盘价 × 当日复权因子 / 最新复权因子
+                latest_factor = factor.iloc[-1]['adj_factor']
+                adj_map = {row['trade_date']: row['adj_factor'] for _, row in factor.iterrows()}
+                for col in ['open', 'close', 'high', 'low']:
+                    kline[col] = kline.apply(lambda x: x[col] * adj_map[x['trade_date']] / latest_factor, axis=1)
+
+            if len(factor) > 0 and adj and adj == 'hfq':
+                # 后复权	= 当日收盘价 × 当日复权因子
+                adj_map = {row['trade_date']: row['adj_factor'] for _, row in factor.iterrows()}
+                for col in ['open', 'close', 'high', 'low']:
+                    kline[col] = kline.apply(lambda x: x[col] * adj_map[x['trade_date']], axis=1)
+
+            update_bars_return(kline)
+            kline.to_feather(file_cache)
+
+        if sdt:
+            sdt=datetime.strptime(sdt,"%Y%m%d")
+            sdt=datetime(sdt.year, sdt.month, sdt.day, 0,0,0, 0,kline['trade_time'][1].tzinfo)
+            kline = kline[kline['trade_time'] >= pd.to_datetime(sdt)]
+        if edt:
+            edt=datetime.strptime(edt,"%Y%m%d")
+            edt=datetime(edt.year, edt.month, edt.day, 0,0,0, 0,kline['trade_time'][1].tzinfo)
             kline = kline[kline['trade_time'] <= pd.to_datetime(edt)]
 
         bars = kline.reset_index(drop=True)

@@ -27,32 +27,33 @@ if len(sys.argv) ==3:
 else:
     print("arguments are : Symbol days")
 if len(sys.argv)<2:
-    symbol='002049.sz'
-    days=1100
+    symbol='qqq'
+    days=730
 elif len(sys.argv)<3:
-    symbol=sys.argv[1]
-    days=1100
+    symbol=sys.argv[1] 
+    days=730
 
 start=datetime.date.today()-datetime.timedelta(days=days)
 end=datetime.date.today()
-print('symbol', symbol, ' from ',start.isoformat(), ' to ', end.isoformat() )
+print('symbol', symbol, ' from ',start.isoformat() +"+08:00", ' to ', end.isoformat()+"08:00" )
 
 # 需要先设置 Tushare Token，否则报错，无法执行
 # TsDataCache 是统一的 tushare 数据缓存入口，适用于需要重复调用接口的场景
-dc = TsDataCache(data_path=r"D:\PriProjects\czscChan\data", sdt=start.isoformat(), edt=end.isoformat())
+dc = TsDataCache(data_path=r"D:\PriProjects\czscChan\data", sdt=start.strftime("%Y%m%d"), edt=end.isoformat())
 
 
 
 # 在浏览器中查看单标的单级别的分型、笔识别结果
 #bars = dc.pro_bar(ts_code='000001.SH', asset='I', start_date='20150101', end_date="20220427", freq='D')
-bars = dc.pro_bar_yahoo(ts_code=symbol, asset='I', start_date=start.strftime("%Y%m%d"), end_date=end.strftime("%Y%m%d"), freq='D')
+#bars = dc.pro_bar_yahoo(ts_code=symbol, asset='I', start_date=start.strftime("%Y%m%d"), end_date=end.strftime("%Y%m%d"), freq='F60')
+bars = dc.pro_bar_minutes__yahoo(ts_code=symbol, sdt=start.strftime("%Y%m%d"), edt=end.strftime("%Y%m%d"), freq='60min', asset=None, adj=None, raw_bar=True)
 
 c = CZSC(bars)
 c.open_in_browser()
 
 
 # K线合成器，这是多级别联立分析的数据支撑。示例为从日线逐K合成周线、月线
-bg = BarGenerator(base_freq='日线', freqs=['周线', '月线'], max_count=5000)
+bg = BarGenerator(base_freq='分钟', freqs=['分钟'], max_count=5000)
 for bar in bars:
     bg.update(bar)
 
@@ -60,7 +61,7 @@ for bar in bars:
 print("K线合成器中存下来的K线周期列表：", list(bg.bars.keys()))
 
 # 通过K线合成器获取周线
-bars_w = bg.bars['周线']
+bars_w = bg.bars['分钟']
 
 
 # 定义一些需要观察的信号，可以是多级别同时计算
