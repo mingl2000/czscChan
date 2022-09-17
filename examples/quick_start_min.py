@@ -52,7 +52,7 @@ c = CZSC(bars)
 c.open_in_browser()
 
 # K线合成器，这是多级别联立分析的数据支撑。示例为从日线逐K合成周线、月线
-bg = BarGenerator(base_freq='5分钟', freqs=['15分钟', '30分钟'], max_count=5000)
+bg = BarGenerator(base_freq='5分钟', freqs=['15分钟', '30分钟','60分钟'], max_count=5000)
 for bar in bars:
     bg.update(bar)
 

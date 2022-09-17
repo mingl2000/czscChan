@@ -35,7 +35,7 @@ elif len(sys.argv)<3:
 
 start=datetime.date.today()-datetime.timedelta(days=days)
 end=datetime.date.today()
-print('symbol', symbol, ' from ',start.isoformat() +"+08:00", ' to ', end.isoformat()+"08:00" )
+print('symbol', symbol, ' from ',start.isoformat(), ' to ', end.isoformat() )
 
 # 需要先设置 Tushare Token，否则报错，无法执行
 # TsDataCache 是统一的 tushare 数据缓存入口，适用于需要重复调用接口的场景

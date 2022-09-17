@@ -108,13 +108,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-data/TS_CACHE/pro_bar/pro_bar_000001.sz\#I_20000101_D_qfq.feather
-data/TS_CACHE/pro_bar/pro_bar_002049.sz\#I_20000101_D_qfq.feather
-data/TS_CACHE/pro_bar/pro_bar_300750.sz\#I_20000101_D_qfq.feather
-data/TS_CACHE/pro_bar/pro_bar_600000.ss\#I_20000101_D_qfq.feather
-data/TS_CACHE/pro_bar/pro_bar_psq\#I_20000101_D_qfq.feather
-data/TS_CACHE/pro_bar/pro_bar_sh\#I_20000101_D_qfq.feather
-data/TS_CACHE/pro_bar/pro_bar_SPDN\#I_20000101_D_qfq.feather
-data/TS_CACHE/pro_bar/pro_bar_sqqq\#I_20000101_D_qfq.feather
-data/TS_CACHE/pro_bar/pro_bar_xxx002049.sz\#I_20000101_D_qfq.feather
-data/TS_CACHE/pro_bar_minutes/pro_bar_minutes_qqq\#None_20200917_60min_None.feather
+data/TS_CACHE/*
