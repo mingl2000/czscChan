@@ -8,6 +8,7 @@ if __name__ == '__main__':
 	# 这里可以换成自己的股票池
 
 	ts_codes = ['002049.sz','300750.sz', '601318.ss', '300293.sz','QQQ','sqqq']
+	#ts_codes = ['601318.ss']
 	for ts_code in ts_codes:
 		try:
 			end_date = datetime.now()

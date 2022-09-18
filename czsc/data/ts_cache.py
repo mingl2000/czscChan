@@ -482,10 +482,10 @@ class TsDataCache:
             '''
             if start_date:
                 #start_date=datetime.strptime(start_date,"%Y%m%d")
-                start_date=datetime(start_date.year, start_date.month, start_date.day, 0,0,0, 0,kline['trade_time'][1].tzinfo)
+                start_date=datetime(start_date.year, start_date.month, start_date.day, 0,0,0, 0,kline['trade_time'][kline['trade_time'].index[0]].tzinfo)
             if end_date:
                 #end_date=datetime.strptime(end_date,"%Y%m%d")
-                end_date=datetime(end_date.year, end_date.month, end_date.day, 0,0,0, 0,kline['trade_time'][1].tzinfo)
+                end_date=datetime(end_date.year, end_date.month, end_date.day, 0,0,0, 0,kline['trade_time'][kline['trade_time'].index[0]].tzinfo)
             kline = kline[(kline['trade_time'] >= start_date) & (kline['trade_time'] <= end_date)]
             kline = kline.reset_index(drop=True)
             kline['trade_date'] = kline.trade_time.apply(lambda x: x.strftime(date_fmt))
