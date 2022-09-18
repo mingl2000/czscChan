@@ -7,7 +7,7 @@ if __name__ == '__main__':
 	print('started in main')
 	# 这里可以换成自己的股票池
 
-	ts_codes = ['002049.sz', '300750.sz', '601318.ss', '300293.sz','QQQ','sqqq']
+	ts_codes = ['002049.sz','300750.sz', '601318.ss', '300293.sz','QQQ','sqqq']
 	for ts_code in ts_codes:
 		try:
 			end_date = datetime.now()
@@ -15,16 +15,41 @@ if __name__ == '__main__':
 			# 需要先设置 Tushare Token，否则报错，无法执行
 			# TsDataCache 是统一的 tushare 数据缓存入口，适用于需要重复调用接口的场景
 			dc = TsDataCache(data_path=r"D:\PriProjects\czscChan\data", sdt=start_date.isoformat(), edt=end_date.isoformat())
-			bars = dc.pro_bar_yahoo(ts_code=ts_code, asset='I', start_date=start_date.strftime("%Y%m%d"), end_date=end_date.strftime("%Y%m%d"), freq='D')
-			kline=pd.DataFrame(bars)
+			bars_day = dc.pro_bar_yahoo(ts_code=ts_code, asset='I', start_date=start_date.strftime("%Y%m%d"), end_date=end_date.strftime("%Y%m%d"), freq='D')
+			bars_week = dc.pro_bar_yahoo(ts_code=ts_code, asset='I', start_date=start_date.strftime("%Y%m%d"), end_date=end_date.strftime("%Y%m%d"), freq='D')
+			bars_hour = dc.pro_bar_minutes__yahoo(ts_code=ts_code, sdt=start_date.strftime("%Y%m%d"), edt=end_date.strftime("%Y%m%d"), freq='60min', asset=None, adj=None, raw_bar=True)
+			
+			kline_day=pd.DataFrame(bars_day)
+			kline_week=pd.DataFrame(bars_week)
+			kline_hour=pd.DataFrame(bars_hour)
+			ka=KlineAnalyze(kline_day) # kline had to be instance of pd.DataFrame
+			ka1=KlineAnalyze(kline_week)
+			ka2=KlineAnalyze(kline_hour)
+			b1, detail = is_first_buy(ka, ka1=ka1, ka2=ka2, tolerance=0.03)
+			if b1:
+				print("{} - 日线一买".format(ts_code))
+			
+			b2, detail = is_second_buy(ka, ka1=ka1, ka2=ka2, tolerance=0.03)
+			if b2:
+				print("{} - 日线二买".format(ts_code))
 
-			#df = pd.DataFrame(ka.kline)
-			ka=KlineAnalyze(kline) # kline had to be instance of pd.DataFrame
-			if is_third_buy(ka, ka1=None, ka2=None, tolerance=0.03, max_num=4):
+			b3, detail = is_third_buy(ka, ka1=ka1, ka2=ka2, tolerance=0.03, max_num=4)
+			if b3:
 				print("{} - 日线三买".format(ts_code))
-			elif is_third_sell(ka, ka1=None, ka2=None, tolerance=0.03, max_num=4):
+
+			s1, detail=is_first_sell(ka, ka1=ka1, ka2=ka2, tolerance=0.03)
+			if s1:
+				print("{} - 日线一卖".format(ts_code))
+			s2, detail=is_second_sell(ka, ka1=ka1, ka2=ka2, tolerance=0.03)
+			if s2:
+				print("{} - 日线二卖".format(ts_code))
+
+			s3, detail=is_third_sell(ka, ka1=ka1, ka2=ka2, tolerance=0.03, max_num=4)
+			if s3:
 				print("{} - 日线三卖".format(ts_code))
 
+			if not ( b1 or b2 or b3 or s1 or s2 or s3):
+				print("{} - 不是缠论买卖点".format(ts_code))
 
 			'''
 			# 在浏览器中查看单标的单级别的分型、笔识别结果
