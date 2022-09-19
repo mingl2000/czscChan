@@ -258,11 +258,11 @@ class TsDataCache:
             '''
                 #df=pdr.get_data_yahoo(symbols=ts_code,  start=start_date_, end=self.edt)
             if freq =='D':
-                df = yf.download(tickers=ts_code,  interval="1d", period ="5y")
+                df = yf.download(tickers=ts_code,  interval="1d", period ="max")
             elif freq =="W":
-                df = yf.download(tickers=ts_code,  interval="1wk", period ="5y")
+                df = yf.download(tickers=ts_code,  interval="1wk", period ="max")
             elif  freq =="M":
-                df = yf.download(tickers=ts_code,  interval="1mo", period ="5y")
+                df = yf.download(tickers=ts_code,  interval="1mo", period ="max")
             #df["trade_date"]=df.index
             #dff=df.sort_values("trade_date",ascending=True)
 

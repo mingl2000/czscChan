@@ -11,12 +11,12 @@ from czsc.strategies import trader_strategy_a
 
 
 def main():
-    data_path = r"C:\ts_data_czsc"
-    dc = TsDataCache(data_path, sdt='2016-01-01', edt='2022-05-06')
+    data_path = r"D:\PriProjects\czscChan\data"
+    dc = TsDataCache(data_path, sdt='2020-09-15', edt='2022-09-15')
     ts = TradeSimulator(dc, trader_strategy_a)
     # ts.update_trader('000001.SH', 'I')
     # trader = ts.update_trader('000001.SH', 'I')
-    ts_codes = ['000905.SH', '000016.SH', '000300.SH']
+    ts_codes = ['002049.sz', '300750.sz']
     ts.update_traders(ts_codes, asset='I')
 
 
